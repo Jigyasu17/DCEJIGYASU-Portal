@@ -51,6 +51,7 @@ const Hero = () => {
             <Button 
               size="lg" 
               className="bg-card text-primary hover:bg-card/90 shadow-elegant group min-w-[200px]"
+              onClick={() => window.location.href = "/student/auth"}
             >
               Student Login
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -59,12 +60,14 @@ const Hero = () => {
               size="lg" 
               variant="outline"
               className="border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary min-w-[200px]"
+              disabled
             >
-              Faculty Login
+              Faculty Login (Coming Soon)
             </Button>
             <Button 
               size="lg" 
               className="bg-warning text-warning-foreground hover:bg-warning/90 shadow-elegant min-w-[200px]"
+              onClick={() => window.location.href = "/admin/auth"}
             >
               Admin Login
             </Button>

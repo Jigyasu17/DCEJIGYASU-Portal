@@ -1,0 +1,114 @@
+import { useEffect, useState } from "react";
+import DashboardLayout from "@/components/student/DashboardLayout";
+import { Card } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { CheckCircle, XCircle, Clock } from "lucide-react";
+
+interface AttendanceRecord {
+  id: string;
+  subject: string;
+  date: string;
+  status: string;
+}
+
+const Attendance = () => {
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, percentage: 0 });
+
+  useEffect(() => {
+    fetchAttendance();
+  }, []);
+
+  const fetchAttendance = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("attendance")
+      .select("*")
+      .eq("student_id", user.id)
+      .order("date", { ascending: false });
+
+    if (data) {
+      setAttendance(data);
+      const present = data.filter((r) => r.status === "present").length;
+      const absent = data.filter((r) => r.status === "absent").length;
+      const late = data.filter((r) => r.status === "late").length;
+      const total = data.length;
+      const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+
+      setStats({ present, absent, late, percentage });
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "present":
+        return <CheckCircle className="w-5 h-5 text-success" />;
+      case "absent":
+        return <XCircle className="w-5 h-5 text-destructive" />;
+      case "late":
+        return <Clock className="w-5 h-5 text-warning" />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <DashboardLayout title="Attendance Management">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card className="p-4 bg-gradient-primary text-primary-foreground">
+          <div className="text-3xl font-bold">{stats.percentage}%</div>
+          <div className="text-sm opacity-90">Overall Attendance</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-3xl font-bold text-success">{stats.present}</div>
+          <div className="text-sm text-muted-foreground">Present</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-3xl font-bold text-destructive">{stats.absent}</div>
+          <div className="text-sm text-muted-foreground">Absent</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-3xl font-bold text-warning">{stats.late}</div>
+          <div className="text-sm text-muted-foreground">Late</div>
+        </Card>
+      </div>
+
+      {/* Attendance Records */}
+      <Card className="p-6">
+        <h3 className="text-xl font-semibold mb-4">Attendance History</h3>
+        {attendance.length === 0 ? (
+          <p className="text-muted-foreground text-center py-8">
+            No attendance records found
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {attendance.map((record) => (
+              <div
+                key={record.id}
+                className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-secondary/50 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  {getStatusIcon(record.status)}
+                  <div>
+                    <p className="font-medium text-foreground">{record.subject}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(record.date).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="capitalize text-sm font-medium">
+                  {record.status}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </DashboardLayout>
+  );
+};
+
+export default Attendance;
