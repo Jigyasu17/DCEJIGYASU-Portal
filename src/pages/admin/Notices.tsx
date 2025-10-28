@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import DashboardLayout from "@/components/student/DashboardLayout";
+import AdminDashboardLayout from "@/components/admin/AdminDashboardLayout";
 import { Card } from "@/components/ui/card";
 import { app } from "@/integrations/firebase/client";
 import { getFirestore, collection, getDocs, query, orderBy } from "firebase/firestore";
@@ -20,7 +20,7 @@ const Notices = () => {
   };
 
   return (
-    <DashboardLayout title="Notices">
+    <AdminDashboardLayout title="Notices">
       <div className="space-y-4">
         {notices.map((notice) => (
           <Card key={notice.id} className="p-4">
@@ -29,7 +29,7 @@ const Notices = () => {
           </Card>
         ))}
       </div>
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 

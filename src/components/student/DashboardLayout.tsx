@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, LogOut, Menu, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { auth, db } from "@/integrations/firebase/client";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -17,28 +19,25 @@ const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    checkAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const userData = userDoc.data();
+        if (userData?.role !== "student") {
+          navigate("/");
+          return;
+        }
+        setProfile(userData);
+      } else {
+        navigate("/student/auth");
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      navigate("/student/auth");
-      return;
-    }
-
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .single();
-
-    setProfile(profileData);
-  };
-
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     toast({
       title: "Logged out successfully",
     });
@@ -72,7 +71,7 @@ const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-foreground">
-                {profile?.full_name || "Student"}
+                {profile?.fullName || "Student"}
               </p>
               <p className="text-xs text-muted-foreground">{profile?.email}</p>
             </div>

@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
 import AdminDashboardLayout from "@/components/admin/AdminDashboardLayout";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { Users, BookOpen, Calendar, MessageSquare, Bell, ClipboardCheck } from "lucide-react";
+import { app } from "@/integrations/firebase/client";
+import { getFirestore, collection, getCountFromServer, addDoc, serverTimestamp, getDocs, query, where, updateDoc, doc } from "firebase/firestore";
+import { Users, BookOpen, Calendar, MessageSquare, Bell, ClipboardCheck, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 const AdminDashboard = () => {
+  const { toast } = useToast();
   const [stats, setStats] = useState({
     students: 0,
     attendance: 0,
@@ -13,99 +20,143 @@ const AdminDashboard = () => {
     complaints: 0,
     notices: 0,
   });
+  const [isNotifying, setIsNotifying] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [notice, setNotice] = useState({
+    title: "",
+    description: "",
+  });
+  const [complaints, setComplaints] = useState([]);
 
   useEffect(() => {
     fetchStats();
+    fetchComplaints();
   }, []);
 
   const fetchStats = async () => {
+    const db = getFirestore(app);
     const [students, attendance, assignments, events, complaints, notices] = await Promise.all([
-      supabase.from("profiles").select("*", { count: "exact", head: true }),
-      supabase.from("attendance").select("*", { count: "exact", head: true }),
-      supabase.from("assignments").select("*", { count: "exact", head: true }),
-      supabase.from("events").select("*", { count: "exact", head: true }),
-      supabase.from("complaints").select("*", { count: "exact", head: true }),
-      supabase.from("notices").select("*", { count: "exact", head: true }),
+      getCountFromServer(collection(db, "profiles")),
+      getCountFromServer(collection(db, "attendance")),
+      getCountFromServer(collection(db, "assignments")),
+      getCountFromServer(collection(db, "events")),
+      getCountFromServer(query(collection(db, "complaints"), where("status", "==", "pending"))),
+      getCountFromServer(collection(db, "notices")),
     ]);
 
     setStats({
-      students: students.count || 0,
-      attendance: attendance.count || 0,
-      assignments: assignments.count || 0,
-      events: events.count || 0,
-      complaints: complaints.count || 0,
-      notices: notices.count || 0,
+      students: students.data().count,
+      attendance: attendance.data().count,
+      assignments: assignments.data().count,
+      events: events.data().count,
+      complaints: complaints.data().count,
+      notices: notices.data().count,
     });
   };
 
-  const cards = [
-    {
-      title: "Total Students",
-      value: stats.students,
-      icon: Users,
-      color: "bg-gradient-primary",
-      link: "/admin/students",
-    },
-    {
-      title: "Attendance Records",
-      value: stats.attendance,
-      icon: BookOpen,
-      color: "bg-gradient-accent",
-      link: "/admin/attendance",
-    },
-    {
-      title: "Assignments",
-      value: stats.assignments,
-      icon: ClipboardCheck,
-      color: "bg-gradient-gold",
-      link: "/admin/assignments",
-    },
-    {
-      title: "Events",
-      value: stats.events,
-      icon: Calendar,
-      color: "bg-gradient-primary",
-      link: "/admin/events",
-    },
-    {
-      title: "Pending Complaints",
-      value: stats.complaints,
-      icon: MessageSquare,
-      color: "bg-gradient-accent",
-      link: "/admin/complaints",
-    },
-    {
-      title: "Notices",
-      value: stats.notices,
-      icon: Bell,
-      color: "bg-gradient-gold",
-      link: "/admin/notices",
-    },
-  ];
+  const fetchComplaints = async () => {
+    const db = getFirestore(app);
+    const q = query(collection(db, "complaints"), where("status", "==", "pending"));
+    const querySnapshot = await getDocs(q);
+    const complaintsData = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    setComplaints(complaintsData);
+  };
+
+  const handleNotify = async () => {
+    if (!notice.title || !notice.description) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const db = getFirestore(app);
+      await addDoc(collection(db, "notices"), {
+        ...notice,
+        created_at: serverTimestamp(),
+      });
+      toast({
+        title: "Success",
+        description: "Notice released successfully.",
+      });
+      setIsNotifying(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to release notice. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleComplaintAction = async (id, status) => {
+    const db = getFirestore(app);
+    await updateDoc(doc(db, "complaints", id), {
+      status,
+    });
+    fetchComplaints();
+    fetchStats();
+  };
 
   return (
     <AdminDashboardLayout title="Admin Dashboard">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {cards.map((card, index) => {
-          const Icon = card.icon;
-          return (
-            <Card
-              key={index}
-              className="p-6 hover:shadow-elegant transition-all cursor-pointer"
-              onClick={() => window.location.href = card.link}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 ${card.color} rounded-xl flex items-center justify-center`}>
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-3xl font-bold text-foreground">
-                  {card.value}
-                </div>
-              </div>
-              <h3 className="text-lg font-semibold text-foreground">{card.title}</h3>
+        <Dialog open={isNotifying} onOpenChange={setIsNotifying}>
+          <DialogTrigger asChild>
+            <Card className="p-6 flex flex-col items-center justify-center cursor-pointer">
+              <Bell className="w-12 h-12 text-yellow-500 mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Release Notices/Updates</h2>
+              <Button>Release</Button>
             </Card>
-          );
-        })}
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>New Notice</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input
+                placeholder="Title"
+                value={notice.title}
+                onChange={(e) => setNotice({ ...notice, title: e.target.value })}
+              />
+              <Textarea
+                placeholder="Description"
+                value={notice.description}
+                onChange={(e) => setNotice({ ...notice, description: e.target.value })}
+              />
+              <Button onClick={handleNotify}>Create Notice</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={isReviewing} onOpenChange={setIsReviewing}>
+          <DialogTrigger asChild>
+            <Card className="p-6 flex flex-col items-center justify-center cursor-pointer">
+              <Shield className="w-12 h-12 text-red-500 mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Review Complaints ({stats.complaints})</h2>
+              <Button>Review</Button>
+            </Card>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Pending Complaints</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {complaints.map((complaint) => (
+                <Card key={complaint.id} className="p-4">
+                  <h3 className="font-semibold">{complaint.title}</h3>
+                  <p>{complaint.description}</p>
+                  <div className="flex justify-end space-x-2 mt-4">
+                    <Button variant="outline" size="sm" onClick={() => handleComplaintAction(complaint.id, "resolved")}>Resolve</Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleComplaintAction(complaint.id, "rejected")}>Reject</Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Admin Message */}

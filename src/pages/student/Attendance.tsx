@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/student/DashboardLayout";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { app, auth } from "@/integrations/firebase/client";
+import { getFirestore, collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { CheckCircle, XCircle, Clock } from "lucide-react";
 
 interface AttendanceRecord {
@@ -16,20 +17,28 @@ const Attendance = () => {
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, percentage: 0 });
 
   useEffect(() => {
-    fetchAttendance();
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        fetchAttendance();
+      } else {
+        setAttendance([]);
+        setStats({ present: 0, absent: 0, late: 0, percentage: 0 });
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   const fetchAttendance = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = auth.currentUser;
     if (!user) return;
 
-    const { data } = await supabase
-      .from("attendance")
-      .select("*")
-      .eq("student_id", user.id)
-      .order("date", { ascending: false });
+    const db = getFirestore(app);
+    const attendanceCol = collection(db, "attendance");
+    const q = query(attendanceCol, where("student_id", "==", user.uid), orderBy("date", "desc"));
+    const attendanceSnapshot = await getDocs(q);
 
-    if (data) {
+    if (!attendanceSnapshot.empty) {
+      const data = attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
       setAttendance(data);
       const present = data.filter((r) => r.status === "present").length;
       const absent = data.filter((r) => r.status === "absent").length;

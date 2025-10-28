@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/student/DashboardLayout";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import { Calendar, MapPin, Trophy, Palette, Code, GraduationCap } from "lucide-react";
 
 interface Event {
@@ -16,21 +15,21 @@ interface Event {
 const Events = () => {
   const [events, setEvents] = useState<Event[]>([]);
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
+  // useEffect(() => {
+  //   fetchEvents();
+  // }, []);
 
-  const fetchEvents = async () => {
-    const { data } = await supabase
-      .from("events")
-      .select("*")
-      .gte("event_date", new Date().toISOString())
-      .order("event_date", { ascending: true });
+  // const fetchEvents = async () => {
+  //   const { data } = await supabase
+  //     .from("events")
+  //     .select("*")
+  //     .gte("event_date", new Date().toISOString())
+  //     .order("event_date", { ascending: true });
 
-    if (data) {
-      setEvents(data);
-    }
-  };
+  //   if (data) {
+  //     setEvents(data);
+  //   }
+  // };
 
   const getEventIcon = (type: string) => {
     switch (type) {

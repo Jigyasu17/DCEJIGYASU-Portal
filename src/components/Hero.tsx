@@ -1,13 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { GraduationCap, ArrowRight } from "lucide-react";
 import heroImage from "@/assets/college-hero.jpg";
+import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+    <section className="relative min-h-screen flex items-center justify-center pt-16">
       {/* Background Image with Overlay */}
       <div 
-        className="absolute inset-0 z-0"
+        className="absolute inset-0"
         style={{
           backgroundImage: `url(${heroImage})`,
           backgroundSize: 'cover',
@@ -18,7 +21,7 @@ const Hero = () => {
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 z-10 text-center">
+      <div className="relative container mx-auto px-4 text-center z-20">
         <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
           {/* Logo */}
           <div className="flex justify-center mb-6">
@@ -51,32 +54,28 @@ const Hero = () => {
             <Button 
               size="lg" 
               className="bg-card text-primary hover:bg-card/90 shadow-elegant group min-w-[200px]"
-              onClick={() => window.location.href = "/student/auth"}
+              onClick={() => navigate("/student/auth")}
             >
               Student Login
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button 
               size="lg" 
-              variant="outline"
-              className="border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary min-w-[200px]"
-              disabled
+              className="bg-card text-primary hover:bg-card/90 shadow-elegant min-w-[200px]"
+              onClick={() => navigate("/faculty/auth")}
             >
-              Faculty Login (Coming Soon)
+              Faculty Login
             </Button>
             <Button 
               size="lg" 
               className="bg-warning text-warning-foreground hover:bg-warning/90 shadow-elegant min-w-[200px]"
-              onClick={() => window.location.href = "/admin/auth"}
+              onClick={() => navigate("/admin/auth")}
             >
               Admin Login
             </Button>
           </div>
         </div>
       </div>
-
-      {/* Decorative Elements */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent z-10"></div>
     </section>
   );
 };

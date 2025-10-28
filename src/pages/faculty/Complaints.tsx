@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import DashboardLayout from "@/components/student/DashboardLayout";
+import FacultyDashboardLayout from "@/components/faculty/FacultyDashboardLayout";
 import { Card } from "@/components/ui/card";
 import { app, auth } from "@/integrations/firebase/client";
 import { getFirestore, collection, getDocs, query, where } from "firebase/firestore";
@@ -16,14 +16,14 @@ const Complaints = () => {
     if (!user) return;
 
     const db = getFirestore(app);
-    const q = query(collection(db, "complaints"), where("student_id", "==", user.uid));
+    const q = query(collection(db, "complaints"), where("faculty_id", "==", user.uid));
     const querySnapshot = await getDocs(q);
     const complaintsData = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     setComplaints(complaintsData);
   };
 
   return (
-    <DashboardLayout title="My Complaints">
+    <FacultyDashboardLayout title="My Complaints">
       <div className="space-y-4">
         {complaints.map((complaint) => (
           <Card key={complaint.id} className="p-4">
@@ -35,7 +35,7 @@ const Complaints = () => {
           </Card>
         ))}
       </div>
-    </DashboardLayout>
+    </FacultyDashboardLayout>
   );
 };
 

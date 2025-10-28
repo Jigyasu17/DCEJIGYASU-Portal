@@ -1,14 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { auth, db } from "@/integrations/firebase/client";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  User,
+} from "firebase/auth";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
-type AuthMode = "student" | "admin";
+type AuthMode = "student" | "admin" | "faculty";
 
 interface AuthFormProps {
   mode: AuthMode;
@@ -22,6 +29,76 @@ const AuthForm = ({ mode }: AuthFormProps) => {
   const [fullName, setFullName] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
+
+  const getPortalTitle = () => {
+    switch (mode) {
+      case "admin":
+        return "Admin Portal";
+      case "student":
+        return "Student Portal";
+      case "faculty":
+        return "Faculty Portal";
+      default:
+        return "";
+    }
+  };
+
+  useEffect(() => {
+    if (loggedInUser) {
+      const checkUserAndRedirect = async () => {
+        try {
+          const userDoc = await getDoc(doc(db, "users", loggedInUser.uid));
+
+          if (!userDoc.exists()) {
+            await setDoc(doc(db, "users", loggedInUser.uid), {
+              role: mode,
+              email: loggedInUser.email,
+              fullName: "New User", 
+            });
+
+            toast({
+              title: "Account Finalized",
+              description: `Your account is now active. Welcome to ${getPortalTitle()}.`,
+            });
+            setIsLoading(false);
+            navigate(`/${mode}`);
+            return;
+          }
+          
+          const userData = userDoc.data();
+
+          if (userData?.role !== mode) {
+            await signOut(auth);
+            toast({
+              variant: "destructive",
+              title: "Access Denied",
+              description: `You don't have ${mode} access.`,
+            });
+            setLoggedInUser(null);
+            setIsLoading(false);
+          } else {
+            toast({
+              title: "Login Successful!",
+              description: `Welcome back to ${getPortalTitle()}. Redirecting...`,
+            });
+            setIsLoading(false);
+            navigate(`/${mode}`);
+          }
+        } catch (error: any) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: error.message,
+          });
+          await signOut(auth);
+          setLoggedInUser(null);
+          setIsLoading(false);
+        }
+      };
+      checkUserAndRedirect();
+    }
+  }, [loggedInUser, mode, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,64 +106,27 @@ const AuthForm = ({ mode }: AuthFormProps) => {
 
     try {
       if (isLogin) {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
           email,
-          password,
-        });
-
-        if (error) throw error;
-
-        if (data.user) {
-          // Check user role
-          const { data: roleData } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", data.user.id)
-            .single();
-
-          if (mode === "admin" && roleData?.role !== "admin") {
-            await supabase.auth.signOut();
-            throw new Error("You don't have admin access");
-          }
-
-          if (mode === "student" && roleData?.role !== "student") {
-            await supabase.auth.signOut();
-            throw new Error("You don't have student access");
-          }
-
-          toast({
-            title: "Login successful!",
-            description: `Welcome back to ${mode === "admin" ? "Admin" : "Student"} Portal`,
-          });
-
-          navigate(mode === "admin" ? "/admin" : "/student");
-        }
+          password
+        );
+        setLoggedInUser(userCredential.user);
       } else {
-        const { data, error } = await supabase.auth.signUp({
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
           email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              full_name: fullName,
-            },
-          },
-        });
+          password
+        );
+        const user = userCredential.user;
 
-        if (error) throw error;
-
-        if (data.user) {
-          // Add role for the user
-          await supabase.from("user_roles").insert({
-            user_id: data.user.id,
+        if (user) {
+          await setDoc(doc(db, "users", user.uid), {
             role: mode,
+            fullName: fullName,
+            email: email,
           });
-
-          toast({
-            title: "Account created!",
-            description: "You can now login with your credentials",
-          });
-          setIsLogin(true);
+          setLoggedInUser(user);
         }
       }
     } catch (error: any) {
@@ -95,7 +135,6 @@ const AuthForm = ({ mode }: AuthFormProps) => {
         title: isLogin ? "Login failed" : "Signup failed",
         description: error.message,
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -104,7 +143,7 @@ const AuthForm = ({ mode }: AuthFormProps) => {
     <Card className="p-8 max-w-md w-full shadow-elegant">
       <div className="mb-6 text-center">
         <h2 className="text-2xl font-bold text-foreground mb-2">
-          {mode === "admin" ? "Admin Portal" : "Student Portal"}
+          {getPortalTitle()}
         </h2>
         <p className="text-muted-foreground">
           {isLogin ? "Sign in to continue" : "Create your account"}

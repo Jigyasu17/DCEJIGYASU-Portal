@@ -7,6 +7,7 @@ import {
   Bell, 
   BarChart 
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const features = [
   {
@@ -48,6 +49,7 @@ const features = [
 ];
 
 const Features = () => {
+  const navigate = useNavigate();
   return (
     <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
@@ -66,7 +68,8 @@ const Features = () => {
             return (
               <Card 
                 key={index}
-                className="p-6 hover:shadow-elegant transition-all duration-300 hover:-translate-y-1 border-border bg-card"
+                className="p-6 hover:shadow-elegant transition-all duration-300 hover:-translate-y-1 border-border bg-card cursor-pointer"
+                onClick={() => navigate("/student/auth")}
               >
                 <div className={`w-12 h-12 ${feature.color} rounded-xl flex items-center justify-center mb-4`}>
                   <Icon className="w-6 h-6 text-white" />

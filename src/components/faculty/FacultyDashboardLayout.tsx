@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, X, Shield } from "lucide-react";
+import { LogOut, Menu, X, User, Book, FileText, ShieldAlert } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { auth, db } from "@/integrations/firebase/client";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
-interface AdminDashboardLayoutProps {
+interface FacultyDashboardLayoutProps {
   children: React.ReactNode;
   title: string;
 }
 
-const AdminDashboardLayout = ({ children, title }: AdminDashboardLayoutProps) => {
+const FacultyDashboardLayout = ({ children, title }: FacultyDashboardLayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const navigate = useNavigate();
@@ -23,11 +23,11 @@ const AdminDashboardLayout = ({ children, title }: AdminDashboardLayoutProps) =>
       if (user) {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         const userData = userDoc.data();
-        if (userData?.role !== "admin") {
+        if (userData?.role !== "faculty") {
           toast({
             variant: "destructive",
             title: "Access denied",
-            description: "You don't have admin permissions",
+            description: "You don\'t have faculty permissions",
           });
           await signOut(auth);
           navigate("/");
@@ -35,7 +35,7 @@ const AdminDashboardLayout = ({ children, title }: AdminDashboardLayoutProps) =>
         }
         setProfile(userData);
       } else {
-        navigate("/admin/auth");
+        navigate("/faculty/auth");
       }
     });
 
@@ -65,11 +65,11 @@ const AdminDashboardLayout = ({ children, title }: AdminDashboardLayoutProps) =>
               {isSidebarOpen ? <X /> : <Menu />}
             </Button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-warning rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-warning-foreground" />
+              <div className="w-8 h-8 bg-info rounded-lg flex items-center justify-center">
+                <User className="w-5 h-5 text-info-foreground" />
               </div>
               <h1 className="text-lg font-bold text-foreground">
-                Admin Portal
+                Faculty Portal
               </h1>
             </div>
           </div>
@@ -77,7 +77,7 @@ const AdminDashboardLayout = ({ children, title }: AdminDashboardLayoutProps) =>
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-foreground">
-                {profile?.fullName || "Admin"}
+                {profile?.fullName || "Faculty"}
               </p>
               <p className="text-xs text-muted-foreground">{profile?.email}</p>
             </div>
@@ -104,52 +104,35 @@ const AdminDashboardLayout = ({ children, title }: AdminDashboardLayoutProps) =>
             <Button
               variant="ghost"
               className="w-full justify-start"
-              onClick={() => navigate("/admin")}
+              onClick={() => navigate("/faculty")}
             >
               Dashboard
             </Button>
             <Button
               variant="ghost"
               className="w-full justify-start"
-              onClick={() => navigate("/admin/students")}
+              onClick={() => navigate("/faculty/assignments")}
             >
-              Students
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => navigate("/admin/attendance")}
-            >
-              Attendance
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => navigate("/admin/assignments")}
-            >
+              <Book className="mr-2 w-4 h-4" />
               Assignments
             </Button>
             <Button
               variant="ghost"
               className="w-full justify-start"
-              onClick={() => navigate("/admin/events")}
+              onClick={() => navigate("/faculty/notices")}
             >
-              Events
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => navigate("/admin/complaints")}
-            >
-              Complaints
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => navigate("/admin/notices")}
-            >
+              <FileText className="mr-2 w-4 h-4" />
               Notices
             </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => navigate("/faculty/complaints")}
+            >
+              <ShieldAlert className="mr-2 w-4 h-4" />
+              Complaints
+            </Button>
+            {/* Add more faculty-specific navigation buttons here */}
           </nav>
         </aside>
 
@@ -165,4 +148,4 @@ const AdminDashboardLayout = ({ children, title }: AdminDashboardLayoutProps) =>
   );
 };
 
-export default AdminDashboardLayout;
+export default FacultyDashboardLayout;
