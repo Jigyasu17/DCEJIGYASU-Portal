@@ -54,7 +54,7 @@ const AuthForm = ({ mode }: AuthFormProps) => {
             await setDoc(doc(db, "users", loggedInUser.uid), {
               role: mode,
               email: loggedInUser.email,
-              fullName: "New User", 
+              fullName: loggedInUser.email?.split('@')[0] || "New User",
             });
 
             toast({

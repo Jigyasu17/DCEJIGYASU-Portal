@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, X, Shield } from "lucide-react";
+import { Shield, LogOut, Menu, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { auth, db } from "@/integrations/firebase/client";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
-interface AdminDashboardLayoutProps {
+interface DashboardLayoutProps {
   children: React.ReactNode;
   title: string;
 }
 
-const AdminDashboardLayout = ({ children, title }: AdminDashboardLayoutProps) => {
+const AdminDashboardLayout = ({ children, title }: DashboardLayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const navigate = useNavigate();
@@ -21,18 +21,20 @@ const AdminDashboardLayout = ({ children, title }: AdminDashboardLayoutProps) =>
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        const userData = userDoc.data();
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        let userData = userDoc.data();
         if (userData?.role !== "admin") {
-          toast({
-            variant: "destructive",
-            title: "Access denied",
-            description: "You don't have admin permissions",
-          });
-          await signOut(auth);
           navigate("/");
           return;
         }
+
+        if (userData.fullName === 'New User' || !userData.fullName) {
+          const newName = user.email!.split('@')[0];
+          await setDoc(userDocRef, { fullName: newName }, { merge: true });
+          userData.fullName = newName;
+        }
+
         setProfile(userData);
       } else {
         navigate("/admin/auth");
@@ -40,7 +42,7 @@ const AdminDashboardLayout = ({ children, title }: AdminDashboardLayoutProps) =>
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -65,11 +67,11 @@ const AdminDashboardLayout = ({ children, title }: AdminDashboardLayoutProps) =>
               {isSidebarOpen ? <X /> : <Menu />}
             </Button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-warning rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-warning-foreground" />
+              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+                <Shield className="w-5 h-5 text-primary-foreground" />
               </div>
               <h1 className="text-lg font-bold text-foreground">
-                Admin Portal
+                Dronacharya Portal
               </h1>
             </div>
           </div>
@@ -96,9 +98,7 @@ const AdminDashboardLayout = ({ children, title }: AdminDashboardLayoutProps) =>
       <div className="flex">
         {/* Sidebar */}
         <aside
-          className={`${
-            isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } md:translate-x-0 fixed md:sticky top-16 left-0 h-[calc(100vh-4rem)] w-64 bg-card border-r border-border transition-transform duration-200 ease-in-out z-30`}
+          className={`${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 fixed md:sticky top-16 left-0 h-[calc(100vh-4rem)] w-64 bg-card border-r border-border transition-transform duration-200 ease-in-out z-30`}
         >
           <nav className="p-4 space-y-2">
             <Button

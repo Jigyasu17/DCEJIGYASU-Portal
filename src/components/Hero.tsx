@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { GraduationCap, ArrowRight } from "lucide-react";
-import heroImage from "@/assets/college-hero.jpg";
+import heroImage from "@/assets/dcecollegeimage.png";
 import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
@@ -33,7 +33,7 @@ const Hero = () => {
           {/* Heading */}
           <div className="space-y-4">
             <h1 className="text-5xl md:text-7xl font-bold text-primary-foreground">
-              Dronacharya College
+              Dronacharya College of Engineering
             </h1>
             <h2 className="text-3xl md:text-4xl font-semibold text-primary-foreground/90">
               Companion Portal

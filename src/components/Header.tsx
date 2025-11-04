@@ -9,7 +9,7 @@ const Header = () => {
             <GraduationCap className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-foreground">Dronacharya College</h1>
+            <h1 className="text-lg font-bold text-foreground">Dronacharya College of Engineering</h1>
             <p className="text-xs text-muted-foreground">College Companion Portal</p>
           </div>
         </div>

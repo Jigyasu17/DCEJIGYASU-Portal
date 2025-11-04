@@ -3,9 +3,10 @@ import DashboardLayout from "@/components/student/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { app } from "@/integrations/firebase/client";
 import { getFirestore, collection, getDocs, query } from "firebase/firestore";
+import { Button } from "@/components/ui/button";
 
 const Assignments = () => {
-  const [assignments, setAssignments] = useState([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
 
   useEffect(() => {
     fetchAssignments();
@@ -26,8 +27,12 @@ const Assignments = () => {
           <Card key={assignment.id} className="p-4">
             <h3 className="font-semibold">{assignment.title}</h3>
             <p>{assignment.description}</p>
-            <p className="text-sm text-gray-500">Subject: {assignment.subject}</p>
-            <p className="text-sm text-gray-500">Deadline: {new Date(assignment.deadline.seconds * 1000).toLocaleString()}</p>
+            <p className="text-sm text-gray-500">Due Date: {assignment.dueDate}</p>
+            {assignment.fileURL && (
+              <a href={assignment.fileURL} target="_blank" rel="noopener noreferrer">
+                <Button variant="link">View Assignment</Button>
+              </a>
+            )}
           </Card>
         ))}
       </div>

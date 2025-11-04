@@ -6,9 +6,11 @@ import { Plus, Bell, Shield } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { app } from "@/integrations/firebase/client";
 import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 const FacultyDashboard = () => {
   const { toast } = useToast();
@@ -18,9 +20,9 @@ const FacultyDashboard = () => {
   const [assignment, setAssignment] = useState({
     title: "",
     description: "",
-    subject: "",
-    deadline: "",
+    dueDate: "",
   });
+  const [file, setFile] = useState<File | null>(null);
   const [notice, setNotice] = useState({
     title: "",
     description: "",
@@ -30,8 +32,14 @@ const FacultyDashboard = () => {
     description: "",
   });
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFile(e.target.files[0]);
+    }
+  };
+
   const handleAssign = async () => {
-    if (!assignment.title || !assignment.subject || !assignment.deadline) {
+    if (!assignment.title || !assignment.dueDate) {
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
@@ -42,17 +50,28 @@ const FacultyDashboard = () => {
 
     try {
       const db = getFirestore(app);
+      let fileURL = "";
+      if (file) {
+        const storage = getStorage(app);
+        const storageRef = ref(storage, `assignments/${file.name}`);
+        await uploadBytes(storageRef, file);
+        fileURL = await getDownloadURL(storageRef);
+      }
+
       await addDoc(collection(db, "assignments"), {
         ...assignment,
-        deadline: new Date(assignment.deadline),
-        created_at: serverTimestamp(),
+        fileURL,
+        createdAt: serverTimestamp(),
       });
       toast({
         title: "Success",
         description: "Assignment created successfully.",
       });
       setIsAssigning(false);
+      setAssignment({ title: "", description: "", dueDate: "" });
+      setFile(null);
     } catch (error) {
+      console.error(error);
       toast({
         title: "Error",
         description: "Failed to create assignment. Please try again later.",
@@ -138,27 +157,37 @@ const FacultyDashboard = () => {
               <DialogTitle>New Assignment</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+            <div>
+              <Label htmlFor="title">Title</Label>
               <Input
-                placeholder="Title"
+                id="title"
+                placeholder="e.g. Maths Homework"
                 value={assignment.title}
                 onChange={(e) => setAssignment({ ...assignment, title: e.target.value })}
               />
+            </div>
+            <div>
+              <Label htmlFor="description">Description</Label>
               <Textarea
-                placeholder="Description"
+                id="description"
+                placeholder="e.g. Complete exercises 1-5"
                 value={assignment.description}
                 onChange={(e) => setAssignment({ ...assignment, description: e.target.value })}
               />
+            </div>
+            <div>
+              <Label htmlFor="dueDate">Due Date</Label>
               <Input
-                placeholder="Subject"
-                value={assignment.subject}
-                onChange={(e) => setAssignment({ ...assignment, subject: e.target.value })}
+                id="dueDate"
+                type="date"
+                value={assignment.dueDate}
+                onChange={(e) => setAssignment({ ...assignment, dueDate: e.target.value })}
               />
-              <Input
-                type="datetime-local"
-                placeholder="Deadline"
-                value={assignment.deadline}
-                onChange={(e) => setAssignment({ ...assignment, deadline: e.target.value })}
-              />
+            </div>
+            <div>
+              <Label htmlFor="file">Assignment File</Label>
+              <Input id="file" type="file" onChange={handleFileChange} />
+            </div>
               <Button onClick={handleAssign}>Create Assignment</Button>
             </div>
           </DialogContent>

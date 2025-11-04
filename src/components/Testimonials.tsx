@@ -3,17 +3,17 @@ import { Quote } from "lucide-react";
 
 const testimonials = [
   {
-    name: "Priya Sharma",
+    name: "Jigyasu Gaur",
     role: "B.Tech Student",
     content: "The portal has transformed how I manage my academics. Checking attendance and submitting assignments is now incredibly simple and efficient.",
   },
   {
-    name: "Dr. Rajesh Kumar",
-    role: "Associate Professor",
-    content: "As a faculty member, I appreciate how streamlined the platform makes student management and grading. It saves hours of administrative work.",
+    name: "Dr. Ashima Mehta",
+    role: "Head of Department",
+    content: "As a HOD, I appreciate how streamlined the platform makes student management and grading. It saves hours of administrative work.",
   },
   {
-    name: "Amit Verma",
+    name: "Rajat Kumar",
     role: "Final Year Student",
     content: "The complaint management system is brilliant. My hostel issues were resolved in just 48 hours with complete transparency.",
   },

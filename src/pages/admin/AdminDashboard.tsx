@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Grid } from "@/components/ui/grid"; 
 
 const AdminDashboard = () => {
   const { toast } = useToast();
@@ -158,6 +159,51 @@ const AdminDashboard = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      <Grid className="grid-cols-3 gap-6 mt-6">
+        <Card className="p-6 flex items-center">
+          <Users className="w-12 h-12 text-blue-500 mr-4" />
+          <div>
+            <h3 className="text-xl font-semibold">Total Students</h3>
+            <p className="text-3xl font-bold">{stats.students}</p>
+          </div>
+        </Card>
+        <Card className="p-6 flex items-center">
+          <ClipboardCheck className="w-12 h-12 text-green-500 mr-4" />
+          <div>
+            <h3 className="text-xl font-semibold">Attendance</h3>
+            <p className="text-3xl font-bold">{stats.attendance}%</p>
+          </div>
+        </Card>
+        <Card className="p-6 flex items-center">
+          <BookOpen className="w-12 h-12 text-indigo-500 mr-4" />
+          <div>
+            <h3 className="text-xl font-semibold">Assignments</h3>
+            <p className="text-3xl font-bold">{stats.assignments}</p>
+          </div>
+        </Card>
+        <Card className="p-6 flex items-center">
+          <Calendar className="w-12 h-12 text-purple-500 mr-4" />
+          <div>
+            <h3 className="text-xl font-semibold">Events</h3>
+            <p className="text-3xl font-bold">{stats.events}</p>
+          </div>
+        </Card>
+        <Card className="p-6 flex items-center">
+          <MessageSquare className="w-12 h-12 text-pink-500 mr-4" />
+          <div>
+            <h3 className="text-xl font-semibold">Complaints</h3>
+            <p className="text-3xl font-bold">{stats.complaints}</p>
+          </div>
+        </Card>
+        <Card className="p-6 flex items-center">
+          <Bell className="w-12 h-12 text-yellow-500 mr-4" />
+          <div>
+            <h3 className="text-xl font-semibold">Notices</h3>
+            <p className="text-3xl font-bold">{stats.notices}</p>
+          </div>
+        </Card>
+      </Grid>
 
       {/* Admin Message */}
       <Card className="mt-6 p-6 bg-warning text-warning-foreground">

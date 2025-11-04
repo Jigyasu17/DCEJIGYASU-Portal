@@ -5,7 +5,7 @@ import { GraduationCap, LogOut, Menu, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { auth, db } from "@/integrations/firebase/client";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -21,11 +21,18 @@ const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        const userData = userDoc.data();
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        let userData = userDoc.data();
         if (userData?.role !== "student") {
           navigate("/");
           return;
+        }
+        
+        if (userData.fullName === 'New User' || !userData.fullName) {
+          const newName = user.email!.split('@')[0];
+          await setDoc(userDocRef, { fullName: newName }, { merge: true });
+          userData.fullName = newName;
         }
         setProfile(userData);
       } else {
@@ -34,7 +41,7 @@ const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const handleLogout = async () => {
     await signOut(auth);
