@@ -3,8 +3,8 @@ import DashboardLayout from "@/components/student/DashboardLayout";
 const Timetable = () => {
   return (
     <DashboardLayout title="Timetable">
-      <div>
-        <p>Your timetable will be displayed here.</p>
+      <div className="flex items-center justify-center">
+        <h1 className="text-2xl font-bold">Timetable</h1>
       </div>
     </DashboardLayout>
   );

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, X, User, Book, FileText, ShieldAlert } from "lucide-react";
+import { LogOut, Menu, X, User, Book, FileText, ShieldAlert, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { auth, db } from "@/integrations/firebase/client";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -15,6 +15,7 @@ interface FacultyDashboardLayoutProps {
 const FacultyDashboardLayout = ({ children, title }: FacultyDashboardLayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -42,6 +43,7 @@ const FacultyDashboardLayout = ({ children, title }: FacultyDashboardLayoutProps
         }
 
         setProfile(userData);
+        setIsLoading(false);
       } else {
         navigate("/faculty/auth");
       }
@@ -51,17 +53,27 @@ const FacultyDashboardLayout = ({ children, title }: FacultyDashboardLayoutProps
   }, [navigate, toast]);
 
   const handleLogout = async () => {
-    await signOut(auth);
-    toast({
-      title: "Logged out successfully",
-    });
-    navigate("/");
+    if (window.confirm("Are you sure you want to logout?")) {
+      await signOut(auth);
+      toast({
+        title: "Logged out successfully",
+      });
+      navigate("/");
+    }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500 dark:text-gray-400" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-40">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <Button
@@ -76,7 +88,7 @@ const FacultyDashboardLayout = ({ children, title }: FacultyDashboardLayoutProps
               <div className="w-8 h-8 bg-info rounded-lg flex items-center justify-center">
                 <User className="w-5 h-5 text-info-foreground" />
               </div>
-              <h1 className="text-lg font-bold text-foreground">
+              <h1 className="text-lg font-bold text-gray-800 dark:text-white">
                 Faculty Portal
               </h1>
             </div>
@@ -84,10 +96,10 @@ const FacultyDashboardLayout = ({ children, title }: FacultyDashboardLayoutProps
 
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-foreground">
+              <p className="text-sm font-medium text-gray-800 dark:text-white">
                 {profile?.fullName || "Faculty"}
               </p>
-              <p className="text-xs text-muted-foreground">{profile?.email}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{profile?.email}</p>
             </div>
             <Button
               variant="outline"
@@ -106,19 +118,19 @@ const FacultyDashboardLayout = ({ children, title }: FacultyDashboardLayoutProps
         <aside
           className={`${
             isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } md:translate-x-0 fixed md:sticky top-16 left-0 h-[calc(100vh-4rem)] w-64 bg-card border-r border-border transition-transform duration-200 ease-in-out z-30`}
+          } md:translate-x-0 fixed md:sticky top-16 left-0 h-[calc(100vh-4rem)] w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-transform duration-200 ease-in-out z-30`}
         >
           <nav className="p-4 space-y-2">
             <Button
               variant="ghost"
-              className="w-full justify-start"
+              className="w-full justify-start hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
               onClick={() => navigate("/faculty")}
             >
               Dashboard
             </Button>
             <Button
               variant="ghost"
-              className="w-full justify-start"
+              className="w-full justify-start hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
               onClick={() => navigate("/faculty/assignments")}
             >
               <Book className="mr-2 w-4 h-4" />
@@ -126,7 +138,7 @@ const FacultyDashboardLayout = ({ children, title }: FacultyDashboardLayoutProps
             </Button>
             <Button
               variant="ghost"
-              className="w-full justify-start"
+              className="w-full justify-start hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
               onClick={() => navigate("/faculty/notices")}
             >
               <FileText className="mr-2 w-4 h-4" />
@@ -134,7 +146,7 @@ const FacultyDashboardLayout = ({ children, title }: FacultyDashboardLayoutProps
             </Button>
             <Button
               variant="ghost"
-              className="w-full justify-start"
+              className="w-full justify-start hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
               onClick={() => navigate("/faculty/complaints")}
             >
               <ShieldAlert className="mr-2 w-4 h-4" />
@@ -147,7 +159,7 @@ const FacultyDashboardLayout = ({ children, title }: FacultyDashboardLayoutProps
         {/* Main Content */}
         <main className="flex-1 p-6">
           <div className="mb-6">
-            <h2 className="text-3xl font-bold text-foreground">{title}</h2>
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white">{title}</h2>
           </div>
           {children}
         </main>

@@ -13,6 +13,7 @@ const Events = lazy(() => import("./pages/student/Events"));
 const Complaints = lazy(() => import("./pages/student/Complaints"));
 const Notices = lazy(() => import("./pages/student/Notices"));
 const Performance = lazy(() => import("./pages/student/Performance"));
+const Timetable = lazy(() => import("./pages/student/Timetable"));
 
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminAssignments = lazy(() => import("./pages/admin/Assignments"));
@@ -41,6 +42,7 @@ const Router = () => (
       <Route path="/student/complaints" element={<Complaints />} />
       <Route path="/student/notices" element={<Notices />} />
       <Route path="/student/performance" element={<Performance />} />
+      <Route path="/student/timetable" element={<Timetable />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/admin/assignments" element={<AdminAssignments />} />
       <Route path="/admin/attendance" element={<AdminAttendance />} />
