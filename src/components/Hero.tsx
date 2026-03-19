@@ -9,7 +9,7 @@ const Hero = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-16">
       {/* Background Image with Overlay */}
-      <div 
+      <div
         className="absolute inset-0"
         style={{
           backgroundImage: `url(${heroImage})`,
@@ -51,27 +51,29 @@ const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="bg-card text-primary hover:bg-card/90 shadow-elegant group min-w-[200px]"
               onClick={() => navigate("/student/auth")}
             >
               Student Login
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="bg-card text-primary hover:bg-card/90 shadow-elegant min-w-[200px]"
               onClick={() => navigate("/faculty/auth")}
             >
               Faculty Login
+              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="bg-warning text-warning-foreground hover:bg-warning/90 shadow-elegant min-w-[200px]"
               onClick={() => navigate("/admin/auth")}
             >
               Admin Login
+              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
         </div>

@@ -1,10 +1,15 @@
 import AuthForm from "@/components/auth/AuthForm";
+import AuthLayout from "@/components/auth/AuthLayout";
 
 const AdminAuth = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center p-4">
+    <AuthLayout 
+      title="Admin Portal" 
+      subtitle="Manage the institution, students, and faculties with powerful tools."
+      characterImage="/assets/admin_character.png"
+    >
       <AuthForm mode="admin" />
-    </div>
+    </AuthLayout>
   );
 };
 

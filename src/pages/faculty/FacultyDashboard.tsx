@@ -146,11 +146,21 @@ const FacultyDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Dialog open={isAssigning} onOpenChange={setIsAssigning}>
           <DialogTrigger asChild>
-            <Card className="p-6 flex flex-col items-center justify-center cursor-pointer">
-              <Plus className="w-12 h-12 text-blue-500 mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Assign Assignments</h2>
-              <Button>Assign</Button>
-            </Card>
+            <div className="bg-gradient-to-b from-[#eff6ff]/80 to-white/90 backdrop-blur-xl rounded-[32px] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(59,130,246,0.12)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col justify-between group h-[200px] relative overflow-hidden">
+              <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                <Plus className="w-8 h-8 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-[22px] font-bold text-[#1a202c] mb-1">Assign Assignments</h3>
+                <p className="text-[#a0aec0] text-sm font-medium">Create a new assignment</p>
+              </div>
+              <div className="absolute right-8 bottom-8 pb-2">
+                <div className="bg-white/50 backdrop-blur-md border border-blue-100 text-blue-600 px-4 py-2 rounded-full text-sm font-bold shadow-sm flex items-center space-x-2 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+                  <span>Assign</span>
+                  <Plus className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -194,11 +204,21 @@ const FacultyDashboard = () => {
         </Dialog>
         <Dialog open={isNotifying} onOpenChange={setIsNotifying}>
           <DialogTrigger asChild>
-            <Card className="p-6 flex flex-col items-center justify-center cursor-pointer">
-              <Bell className="w-12 h-12 text-yellow-500 mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Provide Updates/Notices</h2>
-              <Button>Provide</Button>
-            </Card>
+            <div className="bg-gradient-to-b from-[#fefce8]/80 to-white/90 backdrop-blur-xl rounded-[32px] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(234,179,8,0.12)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col justify-between group h-[200px] relative overflow-hidden">
+              <div className="w-16 h-16 rounded-2xl bg-yellow-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                <Bell className="w-8 h-8 text-yellow-600" />
+              </div>
+              <div>
+                <h3 className="text-[22px] font-bold text-[#1a202c] mb-1">Updates/Notices</h3>
+                <p className="text-[#a0aec0] text-sm font-medium">Broadcast new notices</p>
+              </div>
+              <div className="absolute right-8 bottom-8 pb-2">
+                <div className="bg-white/50 backdrop-blur-md border border-yellow-100 text-yellow-600 px-4 py-2 rounded-full text-sm font-bold shadow-sm flex items-center space-x-2 group-hover:bg-yellow-500 group-hover:text-white transition-all duration-300">
+                  <span>Provide</span>
+                  <Bell className="w-4 h-4 line-clamp-1" />
+                </div>
+              </div>
+            </div>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -221,11 +241,21 @@ const FacultyDashboard = () => {
         </Dialog>
         <Dialog open={isComplaining} onOpenChange={setIsComplaining}>
           <DialogTrigger asChild>
-            <Card className="p-6 flex flex-col items-center justify-center cursor-pointer">
-              <Shield className="w-12 h-12 text-red-500 mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Raise a Complaint</h2>
-              <Button>Raise</Button>
-            </Card>
+            <div className="bg-gradient-to-b from-[#fef2f2]/80 to-white/90 backdrop-blur-xl rounded-[32px] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(239,68,68,0.12)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col justify-between group h-[200px] relative overflow-hidden">
+              <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                <Shield className="w-8 h-8 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-[22px] font-bold text-[#1a202c] mb-1">Raise a Complaint</h3>
+                <p className="text-[#a0aec0] text-sm font-medium">Report an issue</p>
+              </div>
+              <div className="absolute right-8 bottom-8 pb-2">
+                <div className="bg-white/50 backdrop-blur-md border border-red-100 text-red-600 px-4 py-2 rounded-full text-sm font-bold shadow-sm flex items-center space-x-2 group-hover:bg-red-500 group-hover:text-white transition-all duration-300">
+                  <span>Raise</span>
+                  <Shield className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -246,6 +276,25 @@ const FacultyDashboard = () => {
             </div>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Bottom Banner */}
+      <div className="mt-12 bg-gradient-to-r from-[#1e3a8a] to-[#3b82f6] rounded-[32px] p-8 sm:p-10 text-white relative overflow-hidden shadow-[0_15px_40px_-15px_rgba(59,130,246,0.3)]">
+        <div className="absolute right-0 top-0 w-64 h-64 bg-white opacity-5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute left-10 bottom-0 w-40 h-40 bg-blue-300 opacity-20 rounded-full blur-[50px] translate-y-1/2"></div>
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between">
+          <div className="mb-6 md:mb-0 max-w-lg">
+            <h3 className="text-2xl sm:text-3xl font-bold mb-3 tracking-tight">Need help with your classes?</h3>
+            <p className="text-blue-100 text-sm sm:text-base leading-relaxed">
+              Contact the administration deck or reach out to IT support for any technical difficulties spanning the portal.
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            <button className="bg-white text-[#1e3a8a] hover:bg-blue-50 transition-colors px-6 py-3 rounded-full font-bold text-sm shadow-[0_4px_14px_0_rgba(255,255,255,0.3)]">
+              Contact Support
+            </button>
+          </div>
+        </div>
       </div>
     </FacultyDashboardLayout>
   );

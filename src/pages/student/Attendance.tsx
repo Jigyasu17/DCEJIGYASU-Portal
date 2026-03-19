@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/student/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { app, auth } from "@/integrations/firebase/client";
-import { getFirestore, collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
 import { CheckCircle, XCircle, Clock } from "lucide-react";
 
 interface AttendanceRecord {
@@ -34,19 +34,30 @@ const Attendance = () => {
 
     const db = getFirestore(app);
     const attendanceCol = collection(db, "attendance");
-    const q = query(attendanceCol, where("student_id", "==", user.uid), orderBy("date", "desc"));
-    const attendanceSnapshot = await getDocs(q);
+    const q = query(attendanceCol, where("student_id", "==", user.uid));
+    try {
+      const attendanceSnapshot = await getDocs(q);
 
-    if (!attendanceSnapshot.empty) {
-      const data = attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendance(data);
+      if (!attendanceSnapshot.empty) {
+        const data = attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+        // Sort in memory to avoid missing Firestore composite index errors
+        data.sort((a, b) => {
+          const dateA = a.date ? new Date(a.date).getTime() : 0;
+          const dateB = b.date ? new Date(b.date).getTime() : 0;
+          return dateB - dateA;
+        });
+        
+        setAttendance(data);
       const present = data.filter((r) => r.status === "present").length;
       const absent = data.filter((r) => r.status === "absent").length;
       const late = data.filter((r) => r.status === "late").length;
       const total = data.length;
       const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
 
-      setStats({ present, absent, late, percentage });
+        setStats({ present, absent, late, percentage });
+      }
+    } catch (error) {
+      console.error("Failed to fetch attendance:", error);
     }
   };
 

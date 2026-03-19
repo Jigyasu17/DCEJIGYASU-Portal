@@ -26,6 +26,7 @@ const FacultyDashboard = lazy(() => import("./pages/faculty/FacultyDashboard"));
 const FacultyAssignments = lazy(() => import("./pages/faculty/Assignments"));
 const FacultyNotices = lazy(() => import("./pages/faculty/Notices"));
 const FacultyComplaints = lazy(() => import("./pages/faculty/Complaints"));
+const FacultyAttendance = lazy(() => import("./pages/faculty/Attendance"));
 
 const Router = () => (
   <Suspense fallback={<div>Loading...</div>}>
@@ -49,6 +50,7 @@ const Router = () => (
       <Route path="/admin/notices" element={<AdminNotices />} />
       <Route path="/admin/students" element={<AdminStudents />} />
       <Route path="/faculty" element={<FacultyDashboard />} />
+      <Route path="/faculty/attendance" element={<FacultyAttendance />} />
       <Route path="/faculty/assignments" element={<FacultyAssignments />} />
       <Route path="/faculty/notices" element={<FacultyNotices />} />
       <Route path="/faculty/complaints" element={<FacultyComplaints />} />
