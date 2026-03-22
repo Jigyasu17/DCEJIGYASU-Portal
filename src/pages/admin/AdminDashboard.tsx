@@ -37,7 +37,7 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     const db = getFirestore(app);
     const [students, attendance, assignments, events, complaints, notices] = await Promise.all([
-      getCountFromServer(collection(db, "profiles")),
+      getCountFromServer(query(collection(db, "users"), where("role", "==", "student"))),
       getCountFromServer(collection(db, "attendance")),
       getCountFromServer(collection(db, "assignments")),
       getCountFromServer(collection(db, "events")),

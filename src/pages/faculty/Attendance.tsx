@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import FacultyDashboardLayout from "@/components/faculty/FacultyDashboardLayout";
 import { Card } from "@/components/ui/card";
 import { app, auth } from "@/integrations/firebase/client";
-import { getFirestore, collection, getDocs, orderBy, query } from "firebase/firestore";
+import { getFirestore, collection, getDocs } from "firebase/firestore";
 import { CheckCircle, XCircle, Clock } from "lucide-react";
 
 interface AttendanceRecord {
@@ -41,18 +41,22 @@ const FacultyAttendance = () => {
     });
 
     const attendanceCol = collection(db, "attendance");
-    const q = query(attendanceCol, orderBy("timestamp", "desc"));
-    const attendanceSnapshot = await getDocs(q);
+    const attendanceSnapshot = await getDocs(attendanceCol);
 
     if (!attendanceSnapshot.empty) {
-      const data = attendanceSnapshot.docs.map(doc => {
+      let data = attendanceSnapshot.docs.map(doc => {
         const recordData = doc.data();
         return {
           id: doc.id,
           ...recordData,
-          studentName: usersMap[recordData.student_id] || "Unknown Student"
-        } as AttendanceRecord;
+          studentName: usersMap[recordData.student_id] || "Unknown Student",
+          timestampValue: recordData.timestamp ? recordData.timestamp.toMillis() : 0
+        } as AttendanceRecord & { timestampValue: number };
       });
+      
+      // Sort client-side so documents missing timestamp are not dropped
+      data.sort((a, b) => b.timestampValue - a.timestampValue);
+      
       setAttendance(data);
     } else {
       setAttendance([]);

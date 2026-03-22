@@ -2,11 +2,10 @@ import { useState } from "react";
 import FacultyDashboardLayout from "@/components/faculty/FacultyDashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Plus, Bell, Shield } from "lucide-react";
+import { Plus, Bell, Shield, Check } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { app } from "@/integrations/firebase/client";
+import { app, auth } from "@/integrations/firebase/client";
 import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,12 +16,13 @@ const FacultyDashboard = () => {
   const [isAssigning, setIsAssigning] = useState(false);
   const [isNotifying, setIsNotifying] = useState(false);
   const [isComplaining, setIsComplaining] = useState(false);
+  const [isMarkingAttendance, setIsMarkingAttendance] = useState(false);
   const [assignment, setAssignment] = useState({
     title: "",
     description: "",
     dueDate: "",
   });
-  const [file, setFile] = useState<File | null>(null);
+  const [fileURL, setFileURL] = useState("");
   const [notice, setNotice] = useState({
     title: "",
     description: "",
@@ -31,12 +31,6 @@ const FacultyDashboard = () => {
     title: "",
     description: "",
   });
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFile(e.target.files[0]);
-    }
-  };
 
   const handleAssign = async () => {
     if (!assignment.title || !assignment.dueDate) {
@@ -50,13 +44,6 @@ const FacultyDashboard = () => {
 
     try {
       const db = getFirestore(app);
-      let fileURL = "";
-      if (file) {
-        const storage = getStorage(app);
-        const storageRef = ref(storage, `assignments/${file.name}`);
-        await uploadBytes(storageRef, file);
-        fileURL = await getDownloadURL(storageRef);
-      }
 
       await addDoc(collection(db, "assignments"), {
         ...assignment,
@@ -69,7 +56,7 @@ const FacultyDashboard = () => {
       });
       setIsAssigning(false);
       setAssignment({ title: "", description: "", dueDate: "" });
-      setFile(null);
+      setFileURL("");
     } catch (error) {
       console.error(error);
       toast({
@@ -141,9 +128,71 @@ const FacultyDashboard = () => {
     }
   };
 
+  const handleAttendance = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+        return;
+      }
+      
+      const db = getFirestore(app);
+      const currentDate = new Date().toISOString().split("T")[0];
+      
+      await addDoc(collection(db, "faculty_attendance"), {
+        faculty_id: user.uid,
+        date: currentDate,
+        timestamp: serverTimestamp(),
+        status: "present",
+      });
+      
+      toast({
+        title: "Success",
+        description: "Attendance marked successfully.",
+      });
+      setIsMarkingAttendance(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to mark attendance. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <FacultyDashboardLayout title="Dashboard">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Dialog open={isMarkingAttendance} onOpenChange={setIsMarkingAttendance}>
+          <DialogTrigger asChild>
+            <div className="bg-gradient-to-b from-[#ecfdf5]/80 to-white/90 backdrop-blur-xl rounded-[32px] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(34,197,94,0.12)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col justify-between group h-[200px] relative overflow-hidden">
+              <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                <Check className="w-8 h-8 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-[22px] font-bold text-[#1a202c] mb-1">Mark Attendance</h3>
+                <p className="text-[#a0aec0] text-sm font-medium">Record your daily presence</p>
+              </div>
+              <div className="absolute right-8 bottom-8 pb-2">
+                <div className="bg-white/50 backdrop-blur-md border border-green-100 text-green-600 px-4 py-2 rounded-full text-sm font-bold shadow-sm flex items-center space-x-2 group-hover:bg-green-500 group-hover:text-white transition-all duration-300">
+                  <span>Mark</span>
+                  <Check className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Mark Attendance</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <p className="text-gray-600">Click below to mark your attendance for today.</p>
+              <Button onClick={handleAttendance} className="w-full bg-green-600 hover:bg-green-700 h-12 text-lg">
+                Mark Present
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         <Dialog open={isAssigning} onOpenChange={setIsAssigning}>
           <DialogTrigger asChild>
             <div className="bg-gradient-to-b from-[#eff6ff]/80 to-white/90 backdrop-blur-xl rounded-[32px] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(59,130,246,0.12)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col justify-between group h-[200px] relative overflow-hidden">
@@ -151,7 +200,7 @@ const FacultyDashboard = () => {
                 <Plus className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h3 className="text-[22px] font-bold text-[#1a202c] mb-1">Assign Assignments</h3>
+                <h3 className="text-[22px] font-bold text-[#1a202c] mb-1">Assignments</h3>
                 <p className="text-[#a0aec0] text-sm font-medium">Create a new assignment</p>
               </div>
               <div className="absolute right-8 bottom-8 pb-2">
@@ -167,37 +216,43 @@ const FacultyDashboard = () => {
               <DialogTitle>New Assignment</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-            <div>
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                placeholder="e.g. Maths Homework"
-                value={assignment.title}
-                onChange={(e) => setAssignment({ ...assignment, title: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="e.g. Complete exercises 1-5"
-                value={assignment.description}
-                onChange={(e) => setAssignment({ ...assignment, description: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="dueDate">Due Date</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={assignment.dueDate}
-                onChange={(e) => setAssignment({ ...assignment, dueDate: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="file">Assignment File</Label>
-              <Input id="file" type="file" onChange={handleFileChange} />
-            </div>
+              <div>
+                <Label htmlFor="title">Title <span className="text-red-500">*</span></Label>
+                <Input
+                  id="title"
+                  placeholder="Enter Title"
+                  value={assignment.title}
+                  onChange={(e) => setAssignment({ ...assignment, title: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Enter Description"
+                  value={assignment.description}
+                  onChange={(e) => setAssignment({ ...assignment, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="dueDate">Due Date <span className="text-red-500">*</span></Label>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  value={assignment.dueDate}
+                  onChange={(e) => setAssignment({ ...assignment, dueDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="fileURL">Resource Link (Optional)</Label>
+                <Input 
+                  id="fileURL" 
+                  type="url" 
+                  placeholder="e.g. Google Drive Link" 
+                  value={fileURL}
+                  onChange={(e) => setFileURL(e.target.value)} 
+                />
+              </div>
               <Button onClick={handleAssign}>Create Assignment</Button>
             </div>
           </DialogContent>
