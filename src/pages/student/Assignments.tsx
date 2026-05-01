@@ -27,7 +27,11 @@ const Assignments = () => {
           <Card key={assignment.id} className="p-4">
             <h3 className="font-semibold">{assignment.title}</h3>
             <p>{assignment.description}</p>
-            <p className="text-sm text-gray-500">Due Date: {assignment.dueDate}</p>
+            <p className="text-sm text-gray-500">
+              Due Date: {assignment.dueDate?.seconds 
+                ? new Date(assignment.dueDate.seconds * 1000).toLocaleDateString() 
+                : (typeof assignment.dueDate === 'string' ? assignment.dueDate : 'Not specified')}
+            </p>
             {assignment.fileURL && (
               <a href={assignment.fileURL} target="_blank" rel="noopener noreferrer">
                 <Button variant="link">View Assignment</Button>

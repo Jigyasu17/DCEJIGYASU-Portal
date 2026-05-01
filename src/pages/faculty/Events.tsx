@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import DashboardLayout from "@/components/student/DashboardLayout";
+import FacultyDashboardLayout from "@/components/faculty/FacultyDashboardLayout";
 import { Card } from "@/components/ui/card";
 import { db } from "@/integrations/firebase/client";
 import { collection, getDocs, query } from "firebase/firestore";
@@ -67,7 +67,7 @@ const Events = () => {
   };
 
   return (
-    <DashboardLayout title="Event Calendar">
+    <FacultyDashboardLayout title="Event Calendar">
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {events.length === 0 ? (
           <Card className="col-span-full p-12 text-center">
@@ -124,7 +124,7 @@ const Events = () => {
           ))
         )}
       </div>
-    </DashboardLayout>
+    </FacultyDashboardLayout>
   );
 };
 

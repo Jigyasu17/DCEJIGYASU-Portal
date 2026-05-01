@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +21,9 @@ interface AuthFormProps {
   mode: AuthMode;
 }
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Something went wrong. Please try again.";
+
 const AuthForm = ({ mode }: AuthFormProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,82 +34,70 @@ const AuthForm = ({ mode }: AuthFormProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
-
-  const getPortalTitle = () => {
-    switch (mode) {
-      case "admin":
-        return "Admin Portal";
-      case "student":
-        return "Student Portal";
-      case "faculty":
-        return "Faculty Portal";
-      default:
-        return "";
-    }
-  };
+  const portalTitle =
+    mode === "admin" ? "Admin Portal" : mode === "student" ? "Student Portal" : "Faculty Portal";
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setLoggedInUser(user);
-      }
+      setLoggedInUser(user);
     });
+
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (loggedInUser) {
-      const checkUserAndRedirect = async () => {
-        try {
-          const userDoc = await getDoc(doc(db, "users", loggedInUser.uid));
+    if (!loggedInUser) {
+      return;
+    }
 
-          if (!userDoc.exists()) {
-            await setDoc(doc(db, "users", loggedInUser.uid), {
-              role: mode,
-              email: loggedInUser.email,
-              fullName: loggedInUser.email?.split('@')[0] || "New User",
-            });
+    const checkUserAndRedirect = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, "users", loggedInUser.uid));
 
-            toast({
-              title: "Account Finalized",
-              description: `Your account is now active. Welcome to ${getPortalTitle()}.`,
-            });
-            setIsLoading(false);
-            navigate(`/${mode}`);
-            return;
-          }
-
-          const userData = userDoc.data();
-
-          if (userData?.role && userData.role !== mode) {
-            toast({
-              title: "Already Logged In",
-              description: `You are logged in as a ${userData.role}. Redirecting to your dashboard...`,
-            });
-            setIsLoading(false);
-            navigate(`/${userData.role}`);
-          } else {
-            toast({
-              title: "Login Successful!",
-              description: `Welcome back to ${getPortalTitle()}. Redirecting...`,
-            });
-            setIsLoading(false);
-            navigate(`/${mode}`);
-          }
-        } catch (error: any) {
+        if (!userDoc.exists()) {
           toast({
             variant: "destructive",
-            title: "Error",
-            description: error.message,
+            title: "Profile missing",
+            description: "Your account exists, but the portal profile was not found. Please contact support.",
           });
           await signOut(auth);
           setLoggedInUser(null);
           setIsLoading(false);
+          return;
         }
-      };
-      checkUserAndRedirect();
-    }
-  }, [loggedInUser, mode, navigate, toast]);
+
+        const userData = userDoc.data();
+
+        if (userData?.role && userData.role !== mode) {
+          toast({
+            title: "Already Logged In",
+            description: `You are logged in as a ${userData.role}. Redirecting to your dashboard...`,
+          });
+          setIsLoading(false);
+          navigate(`/${userData.role}`);
+          return;
+        }
+
+        toast({
+          title: "Login Successful!",
+          description: `Welcome back to ${portalTitle}. Redirecting...`,
+        });
+        setIsLoading(false);
+        navigate(`/${mode}`);
+      } catch (error: unknown) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: getErrorMessage(error),
+        });
+        await signOut(auth);
+        setLoggedInUser(null);
+        setIsLoading(false);
+      }
+    };
+
+    void checkUserAndRedirect();
+  }, [loggedInUser, mode, navigate, portalTitle, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,49 +105,39 @@ const AuthForm = ({ mode }: AuthFormProps) => {
 
     try {
       if (isLogin) {
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
         setLoggedInUser(userCredential.user);
-      } else {
-        const userCredential = await createUserWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
-        const user = userCredential.user;
-
-        if (user) {
-          await setDoc(doc(db, "users", user.uid), {
-            role: mode,
-            fullName: fullName,
-            email: email,
-          });
-          setLoggedInUser(user);
-        }
+        return;
       }
-    } catch (error: any) {
+
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      if (user) {
+        await setDoc(doc(db, "users", user.uid), {
+          role: mode,
+          fullName,
+          email,
+        });
+        setLoggedInUser(user);
+      }
+    } catch (error: unknown) {
       toast({
         variant: "destructive",
         title: isLogin ? "Login failed" : "Signup failed",
-        description: error.message,
+        description: getErrorMessage(error),
       });
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.3)] w-full overflow-hidden border border-gray-100">
-      {/* Distinct Blue Header */}
-      <div className="bg-[#5648f5] py-5 px-6 text-center">
-        <h2 className="text-xl font-bold text-white tracking-widest uppercase mb-1">
+    <div className="w-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_10px_40px_-15px_rgba(0,0,0,0.3)]">
+      <div className="bg-[#5648f5] px-6 py-5 text-center">
+        <h2 className="mb-1 text-xl font-bold uppercase tracking-widest text-white">
           {isLogin ? "LOG IN" : "SIGN UP"}
         </h2>
-        <p className="text-blue-200 text-sm font-medium">
-          {getPortalTitle()}
-        </p>
+        <p className="text-sm font-medium text-blue-200">{portalTitle}</p>
       </div>
 
       <div className="p-8">
@@ -206,21 +186,17 @@ const AuthForm = ({ mode }: AuthFormProps) => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#5648f5] focus:outline-none transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-[#5648f5] focus:outline-none"
                 disabled={isLoading}
               >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
           </div>
 
           <Button
             type="submit"
-            className="w-full bg-[#5648f5] hover:bg-[#4a3fe0] text-white"
+            className="w-full bg-[#5648f5] text-white hover:bg-[#4a3fe0]"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -241,9 +217,7 @@ const AuthForm = ({ mode }: AuthFormProps) => {
             className="text-sm text-[#5648f5] hover:underline"
             disabled={isLoading}
           >
-            {isLogin
-              ? "Don't have an account? Sign up"
-              : "Already have an account? Sign in"}
+            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
           </button>
         </div>
 
@@ -251,9 +225,9 @@ const AuthForm = ({ mode }: AuthFormProps) => {
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="text-sm text-gray-400 hover:text-gray-600 font-medium transition-colors"
+            className="text-sm font-medium text-gray-400 transition-colors hover:text-gray-600"
           >
-            ← Back to home
+            Back to home
           </button>
         </div>
       </div>

@@ -81,14 +81,14 @@ const AdminDashboardLayout = ({ children, title }: DashboardLayoutProps) => {
     : "AD";
 
   return (
-    <div className="min-h-screen bg-[#f8fbff] relative z-0 flex flex-col">
+    <div className="h-screen bg-[#f8fbff] relative z-0 flex flex-col overflow-hidden">
       {/* Smooth Soft Gradient Background Blobs matching the reference */}
       <div className="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] bg-[#e0e7ff] rounded-full blur-[120px] -z-10 pointer-events-none opacity-60"></div>
       <div className="absolute bottom-[-10%] right-[-5%] w-[60vw] h-[60vw] max-w-[700px] max-h-[700px] bg-[#f3e8ff] rounded-full blur-[150px] -z-10 pointer-events-none opacity-60"></div>
       <div className="absolute top-[40%] left-[30%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-[#e0f2fe] rounded-full blur-[120px] -z-10 pointer-events-none opacity-50"></div>
       
       {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-40">
+      <header className="bg-card border-b border-border z-40 shrink-0">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <Button
@@ -111,14 +111,14 @@ const AdminDashboardLayout = ({ children, title }: DashboardLayoutProps) => {
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside className={`
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0 fixed md:sticky top-16 left-0
-          h-[calc(100vh-4rem)] w-64 bg-card border-r border-border
-          transition-transform duration-200 ease-in-out z-30
-          flex flex-col
+          md:translate-x-0 fixed md:relative z-30
+          h-full w-64 bg-card border-r border-border
+          transition-transform duration-200 ease-in-out shrink-0
+          flex flex-col overflow-y-auto
         `}>
 
           {/* Nav section label */}

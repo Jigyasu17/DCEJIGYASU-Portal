@@ -13,6 +13,7 @@ const Events = lazy(() => import("./pages/student/Events"));
 const Complaints = lazy(() => import("./pages/student/Complaints"));
 const Notices = lazy(() => import("./pages/student/Notices"));
 const Performance = lazy(() => import("./pages/student/Performance"));
+const Timetable = lazy(() => import("./pages/student/Timetable"));
 
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminAssignments = lazy(() => import("./pages/admin/Assignments"));
@@ -27,6 +28,8 @@ const FacultyAssignments = lazy(() => import("./pages/faculty/Assignments"));
 const FacultyNotices = lazy(() => import("./pages/faculty/Notices"));
 const FacultyComplaints = lazy(() => import("./pages/faculty/Complaints"));
 const FacultyAttendance = lazy(() => import("./pages/faculty/Attendance"));
+const FacultyUpdates = lazy(() => import("./pages/faculty/Updates"));
+const FacultyEvents = lazy(() => import("./pages/faculty/Events"));
 
 const Router = () => (
   <Suspense fallback={<div>Loading...</div>}>
@@ -42,6 +45,7 @@ const Router = () => (
       <Route path="/student/complaints" element={<Complaints />} />
       <Route path="/student/notices" element={<Notices />} />
       <Route path="/student/performance" element={<Performance />} />
+      <Route path="/student/timetable" element={<Timetable />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/admin/assignments" element={<AdminAssignments />} />
       <Route path="/admin/attendance" element={<AdminAttendance />} />
@@ -54,6 +58,8 @@ const Router = () => (
       <Route path="/faculty/assignments" element={<FacultyAssignments />} />
       <Route path="/faculty/notices" element={<FacultyNotices />} />
       <Route path="/faculty/complaints" element={<FacultyComplaints />} />
+      <Route path="/faculty/updates" element={<FacultyUpdates />} />
+      <Route path="/faculty/events" element={<FacultyEvents />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </Suspense>

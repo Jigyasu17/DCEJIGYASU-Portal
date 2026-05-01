@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/student/DashboardLayout";
-import { Card } from "@/components/ui/card";
-import { app, auth } from "@/integrations/firebase/client";
-import { getFirestore, collection, query, where, getCountFromServer, addDoc, serverTimestamp, getDocs, updateDoc, doc } from "firebase/firestore";
-import { BookOpen, Calendar, MessageSquare, ClipboardCheck, Bell, BarChart, Check, Plus, Shield } from "lucide-react";
+import { auth, db, storage } from "@/integrations/firebase/client";
+import {
+  collection,
+  query,
+  where,
+  getCountFromServer,
+  addDoc,
+  serverTimestamp,
+  getDocs,
+} from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { Calendar, Bell, BarChart, Check, Plus, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -12,6 +20,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
+
+interface Assignment {
+  id: string;
+  title: string;
+}
 
 const StudentDashboard = () => {
   const { toast } = useToast();
@@ -29,35 +42,52 @@ const StudentDashboard = () => {
     title: "",
     description: "",
   });
-  const [assignments, setAssignments] = useState([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [submission, setSubmission] = useState({
     assignment_id: "",
-    file: null,
+    file: null as File | null,
   });
   const [isMarkingAttendance, setIsMarkingAttendance] = useState(false);
   const [attendanceData, setAttendanceData] = useState({ subject: "" });
+  const [currentUserId, setCurrentUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
 
   useEffect(() => {
-    fetchStats();
-    fetchAssignments();
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUserId(user?.uid ?? null);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const fetchStats = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+  useEffect(() => {
+    if (!currentUserId) {
+      setAssignments([]);
+      setStats({
+        attendance: 0,
+        assignments: 0,
+        events: 0,
+        complaints: 0,
+        notices: 0,
+      });
+      return;
+    }
 
-    const db = getFirestore(app);
-    const [attendance, assignments, events, complaints, notices] = await Promise.all([
-      getCountFromServer(query(collection(db, "attendance"), where("student_id", "==", user.uid))),
+    void fetchStats(currentUserId);
+    void fetchAssignments();
+  }, [currentUserId]);
+
+  const fetchStats = async (userId: string) => {
+    const [attendance, assignmentsCount, events, complaints, notices] = await Promise.all([
+      getCountFromServer(query(collection(db, "attendance"), where("student_id", "==", userId))),
       getCountFromServer(collection(db, "assignments")),
       getCountFromServer(collection(db, "events")),
-      getCountFromServer(query(collection(db, "complaints"), where("student_id", "==", user.uid))),
+      getCountFromServer(query(collection(db, "complaints"), where("student_id", "==", userId))),
       getCountFromServer(collection(db, "notices")),
     ]);
 
     setStats({
       attendance: attendance.data().count,
-      assignments: assignments.data().count,
+      assignments: assignmentsCount.data().count,
       events: events.data().count,
       complaints: complaints.data().count,
       notices: notices.data().count,
@@ -65,7 +95,6 @@ const StudentDashboard = () => {
   };
 
   const fetchAssignments = async () => {
-    const db = getFirestore(app);
     const q = collection(db, "assignments");
     const querySnapshot = await getDocs(q);
     const assignmentsData = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -93,8 +122,25 @@ const StudentDashboard = () => {
     }
 
     try {
-      const db = getFirestore(app);
       const currentDate = new Date().toISOString().split("T")[0];
+      const existingAttendance = await getDocs(
+        query(
+          collection(db, "attendance"),
+          where("student_id", "==", user.uid),
+          where("subject", "==", attendanceData.subject),
+          where("date", "==", currentDate)
+        )
+      );
+
+      if (!existingAttendance.empty) {
+        toast({
+          title: "Already marked",
+          description: "Your attendance for this subject has already been recorded today.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       await addDoc(collection(db, "attendance"), {
         student_id: user.uid,
         subject: attendanceData.subject,
@@ -108,7 +154,7 @@ const StudentDashboard = () => {
       });
       setIsMarkingAttendance(false);
       setAttendanceData({ subject: "" });
-      fetchStats();
+      await fetchStats(user.uid);
     } catch (error) {
       toast({
         title: "Error",
@@ -132,7 +178,6 @@ const StudentDashboard = () => {
     }
 
     try {
-      const db = getFirestore(app);
       await addDoc(collection(db, "complaints"), {
         ...complaint,
         student_id: user.uid,
@@ -144,7 +189,8 @@ const StudentDashboard = () => {
         description: "Complaint raised successfully.",
       });
       setIsComplaining(false);
-      fetchStats();
+      setComplaint({ title: "", description: "" });
+      await fetchStats(user.uid);
     } catch (error) {
       toast({
         title: "Error",
@@ -168,15 +214,23 @@ const StudentDashboard = () => {
     }
 
     try {
-      const db = getFirestore(app);
-      // Upload file to storage and get URL
-      // For now, we'll just add a placeholder URL
-      const fileURL = "/path/to/submission/file";
+      const file = submission.file;
+      if (!file) {
+        return;
+      }
+
+      const storageRef = ref(
+        storage,
+        `submissions/${user.uid}/${submission.assignment_id}/${Date.now()}-${file.name}`
+      );
+      await uploadBytes(storageRef, file);
+      const fileURL = await getDownloadURL(storageRef);
 
       await addDoc(collection(db, "submissions"), {
         assignment_id: submission.assignment_id,
         student_id: user.uid,
         file_url: fileURL,
+        file_name: file.name,
         submitted_at: serverTimestamp(),
       });
       toast({
@@ -184,6 +238,7 @@ const StudentDashboard = () => {
         description: "Assignment submitted successfully.",
       });
       setIsSubmitting(false);
+      setSubmission({ assignment_id: "", file: null });
     } catch (error) {
       toast({
         title: "Error",
@@ -192,30 +247,6 @@ const StudentDashboard = () => {
       });
     }
   };
-
-  const cards = [
-    {
-      title: "Timetable",
-      value: "View",
-      icon: Calendar,
-      color: "bg-gradient-gold",
-      link: "/student/timetable",
-    },
-    {
-      title: "Notices",
-      value: stats.notices,
-      icon: Bell,
-      color: "bg-gradient-accent",
-      link: "/student/notices",
-    },
-    {
-      title: "Performance",
-      value: "View",
-      icon: BarChart,
-      color: "bg-gradient-gold",
-      link: "/student/performance",
-    },
-  ];
 
   return (
     <DashboardLayout>
@@ -306,7 +337,7 @@ const StudentDashboard = () => {
                       <SelectValue placeholder="Choose from pending tasks" />
                     </SelectTrigger>
                     <SelectContent>
-                      {assignments.map((assignment: any) => (
+                      {assignments.map((assignment) => (
                         <SelectItem key={assignment.id} value={assignment.id}>{assignment.title}</SelectItem>
                       ))}
                     </SelectContent>
@@ -317,7 +348,9 @@ const StudentDashboard = () => {
                   <Input
                     type="file"
                     className="rounded-xl border-gray-200 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                    onChange={(e: any) => setSubmission({ ...submission, file: e.target.files[0] })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setSubmission({ ...submission, file: e.target.files?.[0] ?? null })
+                    }
                   />
                 </div>
                 <Button onClick={handleSubmission} className="w-full rounded-xl bg-[#4f46e5] text-white h-12 mt-2 font-bold text-base">Submit File</Button>

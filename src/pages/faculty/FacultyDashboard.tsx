@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus, Bell, Shield, Check } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { app, auth } from "@/integrations/firebase/client";
-import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { app, auth, db } from "@/integrations/firebase/client";
+import { collection, addDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,8 +43,6 @@ const FacultyDashboard = () => {
     }
 
     try {
-      const db = getFirestore(app);
-
       await addDoc(collection(db, "assignments"), {
         ...assignment,
         fileURL,
@@ -78,7 +76,6 @@ const FacultyDashboard = () => {
     }
 
     try {
-      const db = getFirestore(app);
       await addDoc(collection(db, "notices"), {
         ...notice,
         created_at: serverTimestamp(),
@@ -108,7 +105,6 @@ const FacultyDashboard = () => {
     }
 
     try {
-      const db = getFirestore(app);
       await addDoc(collection(db, "complaints"), {
         ...complaint,
         created_at: serverTimestamp(),
@@ -136,8 +132,24 @@ const FacultyDashboard = () => {
         return;
       }
       
-      const db = getFirestore(app);
       const currentDate = new Date().toISOString().split("T")[0];
+      
+      const existingAttendance = await getDocs(
+        query(
+          collection(db, "faculty_attendance"),
+          where("faculty_id", "==", user.uid),
+          where("date", "==", currentDate)
+        )
+      );
+
+      if (!existingAttendance.empty) {
+        toast({
+          title: "Already marked",
+          description: "Your attendance has already been recorded today.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       await addDoc(collection(db, "faculty_attendance"), {
         faculty_id: user.uid,

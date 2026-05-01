@@ -27,7 +27,9 @@ const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
         const userData = userDoc.data();
-        if (userData?.role !== "student") {
+        if (!userDoc.exists() || userData?.role !== "student") {
+          cachedProfile = null;
+          await signOut(auth);
           navigate("/");
           return;
         }

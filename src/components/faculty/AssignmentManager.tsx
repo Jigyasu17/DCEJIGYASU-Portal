@@ -19,15 +19,18 @@ import {
   onSnapshot,
   Timestamp,
 } from "firebase/firestore";
-import { useAuth } from "@/hooks/useAuth"; // You might need a custom hook for auth state
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/components/ui/use-toast";
 
 const AssignmentManager = () => {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [fileURL, setFileURL] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const { user } = useAuth(); // Assuming useAuth provides the logged-in user
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
@@ -48,19 +51,36 @@ const AssignmentManager = () => {
     e.preventDefault();
     if (!user) return;
 
-    await addDoc(collection(db, "assignments"), {
-      title,
-      description,
-      dueDate: Timestamp.fromDate(new Date(dueDate)),
-      facultyId: user.uid,
-      department: user.department, // Assuming user has a department field
-    });
+    try {
+      await addDoc(collection(db, "assignments"), {
+        title,
+        description,
+        dueDate: Timestamp.fromDate(new Date(dueDate)),
+        facultyId: user.uid,
+        department: user.department || "General",
+        fileURL,
+        createdAt: Timestamp.now(),
+      });
 
-    // Reset form
-    setTitle("");
-    setDescription("");
-    setDueDate("");
-    setIsOpen(false);
+      toast({
+        title: "Success",
+        description: "Assignment created successfully.",
+      });
+
+      // Reset form
+      setTitle("");
+      setDescription("");
+      setDueDate("");
+      setFileURL("");
+      setIsOpen(false);
+    } catch (error: any) {
+      console.error("Error creating assignment:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create assignment",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -102,6 +122,16 @@ const AssignmentManager = () => {
                 required
               />
             </div>
+            <div>
+              <Label htmlFor="fileURL">Resource Link (Optional)</Label>
+              <Input
+                id="fileURL"
+                type="url"
+                placeholder="e.g. Google Drive Link"
+                value={fileURL}
+                onChange={(e) => setFileURL(e.target.value)}
+              />
+            </div>
             <Button type="submit">Create</Button>
           </form>
         </DialogContent>
@@ -117,6 +147,13 @@ const AssignmentManager = () => {
               <p className="text-sm text-muted-foreground">
                 Due: {new Date(assignment.dueDate.seconds * 1000).toLocaleDateString()}
               </p>
+              {assignment.fileURL && (
+                <div className="mt-2">
+                  <a href={assignment.fileURL} target="_blank" rel="noopener noreferrer">
+                    <Button variant="link" className="px-0">View Resource</Button>
+                  </a>
+                </div>
+              )}
             </div>
           ))}
         </div>

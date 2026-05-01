@@ -8,7 +8,7 @@ import {
   CalendarDays,
   MessageSquareWarning,
   HelpCircle,
-  BarChart2,
+  BarChartBig,
   LogOut,
 } from "lucide-react";
 import {
@@ -32,7 +32,7 @@ const navItems = [
   { label: "Events", path: "/student/events", icon: CalendarDays, color: "text-[#0ea5e9]", activeColor: "text-[#1e50ff]" },
   { label: "Complaints", path: "/student/complaints", icon: MessageSquareWarning, color: "text-[#eab308]", activeColor: "text-[#1e50ff]" },
   { label: "Notices", path: "/student/notices", icon: HelpCircle, color: "text-[#06b6d4]", activeColor: "text-[#1e50ff]" },
-  { label: "Performance", path: "/student/performance", icon: BarChart2, color: "text-[#3b82f6]", activeColor: "text-[#1e50ff]" },
+  { label: "Performance", path: "/student/performance", icon: BarChartBig, color: "text-[#3b82f6]", activeColor: "text-[#1e50ff]" },
 ];
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, profile, handleLogout }: SidebarProps) => {

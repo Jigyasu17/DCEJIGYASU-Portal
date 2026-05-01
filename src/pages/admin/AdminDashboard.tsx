@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminDashboardLayout from "@/components/admin/AdminDashboardLayout";
 import { Card } from "@/components/ui/card";
 import { app } from "@/integrations/firebase/client";
@@ -9,9 +10,16 @@ import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Grid } from "@/components/ui/grid"; 
+import { Label } from "@/components/ui/label";
+
+interface Complaint {
+  id: string;
+  title: string;
+  description: string;
+}
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [stats, setStats] = useState({
     students: 0,
@@ -26,8 +34,9 @@ const AdminDashboard = () => {
   const [notice, setNotice] = useState({
     title: "",
     description: "",
+    fileURL: "",
   });
-  const [complaints, setComplaints] = useState([]);
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
 
   useEffect(() => {
     fetchStats();
@@ -35,39 +44,44 @@ const AdminDashboard = () => {
   }, []);
 
   const fetchStats = async () => {
-    const db = getFirestore(app);
-    const [students, attendance, assignments, events, complaints, notices] = await Promise.all([
-      getCountFromServer(query(collection(db, "users"), where("role", "==", "student"))),
-      getCountFromServer(collection(db, "attendance")),
-      getCountFromServer(collection(db, "assignments")),
-      getCountFromServer(collection(db, "events")),
-      getCountFromServer(query(collection(db, "complaints"), where("status", "==", "pending"))),
-      getCountFromServer(collection(db, "notices")),
-    ]);
+    try {
+      const db = getFirestore(app);
+      const [students, studentAttendance, facultyAttendance, assignments, events, complaints, notices] = await Promise.all([
+        getCountFromServer(query(collection(db, "users"), where("role", "==", "student"))),
+        getCountFromServer(collection(db, "attendance")),
+        getCountFromServer(collection(db, "faculty_attendance")),
+        getCountFromServer(collection(db, "assignments")),
+        getCountFromServer(collection(db, "events")),
+        getCountFromServer(query(collection(db, "complaints"), where("status", "==", "pending"))),
+        getCountFromServer(collection(db, "notices")),
+      ]);
 
-    setStats({
-      students: students.data().count,
-      attendance: attendance.data().count,
-      assignments: assignments.data().count,
-      events: events.data().count,
-      complaints: complaints.data().count,
-      notices: notices.data().count,
-    });
+      setStats({
+        students: students.data().count,
+        attendance: studentAttendance.data().count + facultyAttendance.data().count,
+        assignments: assignments.data().count,
+        events: events.data().count,
+        complaints: complaints.data().count,
+        notices: notices.data().count,
+      });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
   };
 
   const fetchComplaints = async () => {
     const db = getFirestore(app);
     const q = query(collection(db, "complaints"), where("status", "==", "pending"));
     const querySnapshot = await getDocs(q);
-    const complaintsData = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    setComplaints(complaintsData);
+    const complaintsData = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() as any }));
+    setComplaints(complaintsData as Complaint[]);
   };
 
   const handleNotify = async () => {
     if (!notice.title || !notice.description) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields (Title, Description).",
         variant: "destructive",
       });
       return;
@@ -76,14 +90,21 @@ const AdminDashboard = () => {
     try {
       const db = getFirestore(app);
       await addDoc(collection(db, "notices"), {
-        ...notice,
+        title: notice.title,
+        description: notice.description,
+        content: notice.description,
+        fileURL: notice.fileURL,
         created_at: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        department: "General"
       });
       toast({
         title: "Success",
         description: "Notice released successfully.",
       });
       setIsNotifying(false);
+      setNotice({ title: "", description: "", fileURL: "" });
+      fetchStats();
     } catch (error) {
       toast({
         title: "Error",
@@ -93,7 +114,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleComplaintAction = async (id, status) => {
+  const handleComplaintAction = async (id: string, status: string) => {
     const db = getFirestore(app);
     await updateDoc(doc(db, "complaints", id), {
       status,
@@ -127,18 +148,33 @@ const AdminDashboard = () => {
             <DialogHeader>
               <DialogTitle>New Notice</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                placeholder="Title"
-                value={notice.title}
-                onChange={(e) => setNotice({ ...notice, title: e.target.value })}
-              />
-              <Textarea
-                placeholder="Description"
-                value={notice.description}
-                onChange={(e) => setNotice({ ...notice, description: e.target.value })}
-              />
-              <Button onClick={handleNotify}>Create Notice</Button>
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Notice Title *</Label>
+                <Input
+                  placeholder="e.g. End Semester Exam Schedule"
+                  value={notice.title}
+                  onChange={(e) => setNotice({ ...notice, title: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description / Content *</Label>
+                <Textarea
+                  placeholder="Details about the notice..."
+                  value={notice.description}
+                  onChange={(e) => setNotice({ ...notice, description: e.target.value })}
+                  className="min-h-[100px]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Resource Link (Optional)</Label>
+                <Input
+                  placeholder="e.g. Google Drive Link to Circular PDF"
+                  value={notice.fileURL}
+                  onChange={(e) => setNotice({ ...notice, fileURL: e.target.value })}
+                />
+              </div>
+              <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-white" onClick={handleNotify}>Publish Notice</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -165,7 +201,7 @@ const AdminDashboard = () => {
               <DialogTitle>Pending Complaints</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-              {complaints.map((complaint: any) => (
+              {complaints.map((complaint) => (
                 <Card key={complaint.id} className="p-4">
                   <h3 className="font-semibold">{complaint.title}</h3>
                   <p>{complaint.description}</p>
@@ -181,7 +217,7 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-6">
-        <div className="bg-gradient-to-b from-[#eff6ff]/80 to-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(59,130,246,0.12)] transition-all duration-300 flex flex-col justify-between h-[150px]">
+        <div onClick={() => navigate("/admin/students")} className="cursor-pointer bg-gradient-to-b from-[#eff6ff]/80 to-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(59,130,246,0.12)] transition-all duration-300 flex flex-col justify-between h-[150px]">
           <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 mb-2">
             <Users className="w-6 h-6" />
           </div>
@@ -190,16 +226,16 @@ const AdminDashboard = () => {
             <h3 className="text-3xl font-bold text-[#1a202c]">{stats.students}</h3>
           </div>
         </div>
-        <div className="bg-gradient-to-b from-[#f0fdf4]/80 to-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(34,197,94,0.12)] transition-all duration-300 flex flex-col justify-between h-[150px]">
+        <div onClick={() => navigate("/admin/attendance")} className="cursor-pointer bg-gradient-to-b from-[#f0fdf4]/80 to-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(34,197,94,0.12)] transition-all duration-300 flex flex-col justify-between h-[150px]">
           <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center text-green-600 mb-2">
             <ClipboardCheck className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#a0aec0] uppercase tracking-wider mb-1">Attendance</p>
-            <h3 className="text-3xl font-bold text-[#1a202c]">{stats.attendance}%</h3>
+            <p className="text-sm font-semibold text-[#a0aec0] uppercase tracking-wider mb-1">Attendance Records</p>
+            <h3 className="text-3xl font-bold text-[#1a202c]">{stats.attendance}</h3>
           </div>
         </div>
-        <div className="bg-gradient-to-b from-[#e0e7ff]/80 to-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(99,102,241,0.12)] transition-all duration-300 flex flex-col justify-between h-[150px]">
+        <div onClick={() => navigate("/admin/assignments")} className="cursor-pointer bg-gradient-to-b from-[#e0e7ff]/80 to-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(99,102,241,0.12)] transition-all duration-300 flex flex-col justify-between h-[150px]">
           <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 mb-2">
             <BookOpen className="w-6 h-6" />
           </div>
@@ -208,7 +244,7 @@ const AdminDashboard = () => {
             <h3 className="text-3xl font-bold text-[#1a202c]">{stats.assignments}</h3>
           </div>
         </div>
-        <div className="bg-gradient-to-b from-[#f3e8ff]/80 to-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(168,85,247,0.12)] transition-all duration-300 flex flex-col justify-between h-[150px]">
+        <div onClick={() => navigate("/admin/events")} className="cursor-pointer bg-gradient-to-b from-[#f3e8ff]/80 to-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(168,85,247,0.12)] transition-all duration-300 flex flex-col justify-between h-[150px]">
           <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center text-purple-600 mb-2">
             <Calendar className="w-6 h-6" />
           </div>
@@ -217,7 +253,7 @@ const AdminDashboard = () => {
             <h3 className="text-3xl font-bold text-[#1a202c]">{stats.events}</h3>
           </div>
         </div>
-        <div className="bg-gradient-to-b from-[#fce7f3]/80 to-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(236,72,153,0.12)] transition-all duration-300 flex flex-col justify-between h-[150px]">
+        <div onClick={() => navigate("/admin/complaints")} className="cursor-pointer bg-gradient-to-b from-[#fce7f3]/80 to-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(236,72,153,0.12)] transition-all duration-300 flex flex-col justify-between h-[150px]">
           <div className="w-12 h-12 rounded-2xl bg-pink-100 flex items-center justify-center text-pink-600 mb-2">
             <MessageSquare className="w-6 h-6" />
           </div>
@@ -226,7 +262,7 @@ const AdminDashboard = () => {
             <h3 className="text-3xl font-bold text-[#1a202c]">{stats.complaints}</h3>
           </div>
         </div>
-        <div className="bg-gradient-to-b from-[#fefce8]/80 to-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(234,179,8,0.12)] transition-all duration-300 flex flex-col justify-between h-[150px]">
+        <div onClick={() => navigate("/admin/notices")} className="cursor-pointer bg-gradient-to-b from-[#fefce8]/80 to-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-[4px] border-white hover:shadow-[0_8px_30px_rgba(234,179,8,0.12)] transition-all duration-300 flex flex-col justify-between h-[150px]">
           <div className="w-12 h-12 rounded-2xl bg-yellow-100 flex items-center justify-center text-yellow-600 mb-2">
             <Bell className="w-6 h-6" />
           </div>
