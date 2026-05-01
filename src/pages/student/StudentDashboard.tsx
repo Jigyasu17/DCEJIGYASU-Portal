@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/student/DashboardLayout";
-import { auth, db, storage } from "@/integrations/firebase/client";
+import { auth, db } from "@/integrations/firebase/client";
 import {
   collection,
   query,
@@ -10,7 +10,6 @@ import {
   serverTimestamp,
   getDocs,
 } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { Calendar, Bell, BarChart, Check, Plus, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -45,7 +44,7 @@ const StudentDashboard = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [submission, setSubmission] = useState({
     assignment_id: "",
-    file: null as File | null,
+    file_url: "",
   });
   const [isMarkingAttendance, setIsMarkingAttendance] = useState(false);
   const [attendanceData, setAttendanceData] = useState({ subject: "" });
@@ -97,7 +96,7 @@ const StudentDashboard = () => {
   const fetchAssignments = async () => {
     const q = collection(db, "assignments");
     const querySnapshot = await getDocs(q);
-    const assignmentsData = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const assignmentsData = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() as any }));
     setAssignments(assignmentsData);
   };
 
@@ -204,33 +203,20 @@ const StudentDashboard = () => {
     const user = auth.currentUser;
     if (!user) return;
 
-    if (!submission.assignment_id || !submission.file) {
+    if (!submission.assignment_id || !submission.file_url) {
       toast({
         title: "Error",
-        description: "Please select an assignment and a file.",
+        description: "Please select an assignment and provide a resource link.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      const file = submission.file;
-      if (!file) {
-        return;
-      }
-
-      const storageRef = ref(
-        storage,
-        `submissions/${user.uid}/${submission.assignment_id}/${Date.now()}-${file.name}`
-      );
-      await uploadBytes(storageRef, file);
-      const fileURL = await getDownloadURL(storageRef);
-
       await addDoc(collection(db, "submissions"), {
         assignment_id: submission.assignment_id,
         student_id: user.uid,
-        file_url: fileURL,
-        file_name: file.name,
+        file_url: submission.file_url,
         submitted_at: serverTimestamp(),
       });
       toast({
@@ -238,7 +224,7 @@ const StudentDashboard = () => {
         description: "Assignment submitted successfully.",
       });
       setIsSubmitting(false);
-      setSubmission({ assignment_id: "", file: null });
+      setSubmission({ assignment_id: "", file_url: "" });
     } catch (error) {
       toast({
         title: "Error",
@@ -344,16 +330,18 @@ const StudentDashboard = () => {
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label className="text-gray-500 font-semibold">Upload File</Label>
+                  <Label className="text-gray-500 font-semibold">Resource Link (Google Drive, GitHub, etc.)</Label>
                   <Input
-                    type="file"
-                    className="rounded-xl border-gray-200 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    type="url"
+                    placeholder="https://..."
+                    className="rounded-xl border-gray-200"
+                    value={submission.file_url}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setSubmission({ ...submission, file: e.target.files?.[0] ?? null })
+                      setSubmission({ ...submission, file_url: e.target.value })
                     }
                   />
                 </div>
-                <Button onClick={handleSubmission} className="w-full rounded-xl bg-[#4f46e5] text-white h-12 mt-2 font-bold text-base">Submit File</Button>
+                <Button onClick={handleSubmission} className="w-full rounded-xl bg-[#4f46e5] text-white h-12 mt-2 font-bold text-base">Submit Assignment</Button>
               </div>
             </DialogContent>
           </Dialog>
